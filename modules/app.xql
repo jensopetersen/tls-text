@@ -326,7 +326,7 @@ declare
 function app:query($node as node()*, $model as map(*), $query as xs:string?, $tei-target as xs:string+, $query-scope as xs:string, $work-authors as xs:string+, $target-texts as xs:string+, $bool as xs:string?) as map(*) {
         let $query := 
             if ($query) 
-            then app:convert-query-to-phrase-query(app:sanitize-query($query)) 
+            then app:convert-chinese-query-to-phrase-query(app:sanitize-query($query)) 
             else ()
         return
         (:If there is no query string, fill up the map with any existing values (but do not sanitize it once again):)
@@ -451,8 +451,8 @@ function app:query($node as node()*, $model as map(*), $query as xs:string?, $te
 };
 
 
-(:convert text queries into phrase queries by default:)
-declare function app:convert-query-to-phrase-query($query as xs:string) as xs:string {
+(:convert queries into phrase queries:)
+declare function app:convert-chinese-query-to-phrase-query($query as xs:string) as xs:string {
     let $query-parts := tokenize($query, '\s+')
     return
         string-join(
@@ -492,7 +492,7 @@ declare %private function app:sanitize-query($query-string as xs:string) as xs:s
     (:Remove colons – Lucene fields are not supported.:)
     let $query-string := translate($query-string, ":", " ")
     let $query-string := 
-       if (functx:number-of-matches($query-string, '"') mod 2) 
+       if (functx:number-of-matches($query-string, '"') mod 2 eq 0) 
        then $query-string
        else replace($query-string, '"', ' ') (:if there is an uneven number of quotation marks, delete all quotation marks.:)
     let $query-string := 
