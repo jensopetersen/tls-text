@@ -156,12 +156,10 @@ function app:hit-count($node as node()*, $model as map(*), $key as xs:string) {
 declare function app:query-report($node as node()*, $model as map(*)) {
     let $hits := $model("hits")
     let $hit-count := count($hits)
-    let $log := util:log("DEBUG", ("##$hit-count): ", $hit-count))
     let $match-count := count(util:expand($hits)//exist:match)
     let $ids := $model("apps.simple.target-texts")
     let $ids := request:get-parameter('target-texts', 'all')
     let $hit-count-total := session:get-attribute("apps.simple.hitCount")
-    let $log := util:log("DEBUG", ("##$hit-count-total): ", $hit-count-total))
     return
         <div xmlns="http://www.w3.org/1999/xhtml" id="query-report"> You have searched for <strong>{$model("query")}</strong> in 
         <strong>{if ($ids = 'all' or empty($ids)) then 'all works' else app:ids-to-titles($ids)}</strong> 
@@ -343,6 +341,10 @@ function app:query($node as node()*, $model as map(*), $query as xs:string?, $te
         else
             (:Otherwise, perform the query.:)
             (: Here the actual query commences. This is split into two parts, the first for a Lucene query and the second for an ngram query. :)
+            let $target-texts := 
+                if ($target-texts = 'all')
+                then collection($config:data-root)//tei:TEI
+                else collection($config:data-root)//tei:TEI[@xml:id = $target-texts]
             let $hits :=
                 (:If the $query-scope is narrow, query the elements immediately below the lowest div in tei:text and the four major element below tei:teiHeader.:)
                 if ($query-scope eq 'seg')
@@ -351,16 +353,16 @@ function app:query($node as node()*, $model as map(*), $query as xs:string?, $te
                         (:If both tei-text and tei-header is queried.:)
                         if (count($tei-target) eq 2)
                         then
-                            collection($config:data-root)//tei:seg[ft:query(., $query)] |
-                            collection($config:data-root)//tei:teiHeader[ft:query(., $query)]
+                            $target-texts//tei:seg[ft:query(., $query)] |
+                            $target-texts//tei:teiHeader[ft:query(., $query)]
                         else
                             if ($tei-target = 'tei-text')
                             then
-                                collection($config:data-root)//tei:seg[ft:query(., $query)]
+                                $target-texts//tei:seg[ft:query(., $query)]
                             else 
                                 if ($tei-target = 'tei-head')
                                 then 
-                                    collection($config:data-root)//tei:teiHeader[ft:query(., $query)]
+                                    $target-texts//tei:teiHeader[ft:query(., $query)]
                                 else ()
                     order by ft:score($hit) descending
                     return $hit
@@ -371,16 +373,16 @@ function app:query($node as node()*, $model as map(*), $query as xs:string?, $te
                         (:If both tei-text and tei-header is queried.:)
                         if (count($tei-target) eq 2)
                         then
-                            collection($config:data-root)//tei:p[ft:query(., $query)] |
-                            collection($config:data-root)//tei:teiHeader[ft:query(., $query)]
+                            $target-texts//tei:p[ft:query(., $query)] |
+                            $target-texts//tei:teiHeader[ft:query(., $query)]
                         else
                             if ($tei-target = 'tei-text')
                             then
-                                collection($config:data-root)//tei:p[ft:query(., $query)]
+                                $target-texts//tei:p[ft:query(., $query)]
                             else 
                                 if ($tei-target = 'tei-head')
                                 then 
-                                    collection($config:data-root)//tei:teiHeader[ft:query(., $query)]
+                                    $target-texts//tei:teiHeader[ft:query(., $query)]
                                 else ()
                     order by ft:score($hit) descending
                     return $hit
@@ -391,16 +393,16 @@ function app:query($node as node()*, $model as map(*), $query as xs:string?, $te
                         (:If both tei-text and tei-header is queried.:)
                         if (count($tei-target) eq 2)
                         then
-                            collection($config:data-root)//tei:div[ft:query(., $query)] |
-                            collection($config:data-root)//tei:teiHeader[ft:query(., $query)]
+                            $target-texts//tei:div[not(ancestor::tei:div)][ft:query(., $query)] |
+                            $target-texts//tei:teiHeader[ft:query(., $query)]
                         else
                             if ($tei-target = 'tei-text')
                             then
-                                collection($config:data-root)//tei:div[ft:query(., $query)]
+                                $target-texts//tei:div[not(ancestor::tei:div)][ft:query(., $query)]
                             else 
                                 if ($tei-target = 'tei-head')
                                 then 
-                                    collection($config:data-root)//tei:teiHeader[ft:query(., $query)]
+                                    $target-texts//tei:teiHeader[ft:query(., $query)]
                                 else ()
 
                     order by ft:score($hit) descending
